@@ -1,8 +1,10 @@
+.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premier Status</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -86,4 +88,133 @@
             
             if (wins === 0 && losses === 0) return '0.0';
             if (losses === 0) return wins.toFixed(1);
-            return (wins
+            return (wins / losses).toFixed(1);
+        }
+        
+        function formatRecentMatches(recentmatches) {
+            if (!recentmatches) return '';
+            
+            let html = '';
+            for (let i = 0; i < recentmatches.length; i++) {
+                const result = recentmatches[i];
+                if (result === 'W') {
+                    html += '<span class="streak-win">W</span>';
+                } else if (result === 'L') {
+                    html += '<span class="streak-loss">L</span>';
+                } else {
+                    html += result;
+                }
+                
+                if (i < recentmatches.length - 1) {
+                    html += ' ';
+                }
+            }
+            
+            return html;
+        }
+        
+        function showStatus(message, isError = false) {
+            elements.status.innerHTML = message;
+            elements.status.className = isError ? 'status-bar error' : 'status-bar';
+            elements.status.style.display = 'block';
+            setTimeout(() => {
+                elements.status.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Add animation for value changes
+        function animateValueChange(element, newValue) {
+            element.classList.add('updating');
+            setTimeout(() => {
+                element.innerHTML = newValue;
+                element.classList.remove('updating');
+            }, 300);
+        }
+        
+        // Update UI with data
+        function updateUI(data) {
+            // Display the full rating without formatting
+            elements.rating.innerHTML = data.rating || 'N/A';
+            
+            // Show trend indicator based on today's rating diff
+            const rankTrend = document.getElementById('rankTrend');
+            const trendUp = rankTrend.querySelector('.trend-up');
+            const trendDown = rankTrend.querySelector('.trend-down');
+            
+            const ratingDiff = parseInt(data.todayRatingDiff || '0', 10);
+            if (ratingDiff > 0) {
+                trendUp.style.display = 'inline';
+                trendDown.style.display = 'none';
+            } else if (ratingDiff < 0) {
+                trendUp.style.display = 'none';
+                trendDown.style.display = 'inline';
+            } else {
+                trendUp.style.display = 'none';
+                trendDown.style.display = 'none';
+            }
+            
+            // Animate value changes
+            animateValueChange(elements.todayRatingDiff, formatRatingDiff(data.todayRatingDiff || '0'));
+            animateValueChange(elements.wins, data.results?.wins || '0');
+            animateValueChange(elements.losses, data.results?.losses || '0');
+            animateValueChange(elements.winRatio, calculateWinRatio(
+                data.results?.wins || 0, 
+                data.results?.losses || 0
+            ));
+            
+            // Display recent matches streak with animation
+            if (data.results?.recentmatches) {
+                const streakHTML = formatRecentMatches(data.results.recentmatches);
+                elements.streak.style.opacity = '0';
+                setTimeout(() => {
+                    elements.streak.innerHTML = streakHTML;
+                    elements.streak.style.display = 'flex';
+                    elements.streak.style.opacity = '1';
+                }, 200);
+            } else {
+                elements.streak.style.display = 'none';
+            }
+            
+            // Show last updated time
+            const now = new Date();
+            const timeString = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+            showStatus(`Updated ${timeString}`);
+        }
+        
+        // Fetch data function
+        function fetchData() {
+            // Remove loading class from all elements
+            Object.values(elements).forEach(el => {
+                if (el.classList.contains('loading')) {
+                    el.classList.remove('loading');
+                }
+            });
+            
+            // Direct API fetch attempt
+            fetch(API_URL)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Data fetched:', data);
+                    updateUI(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                    showStatus('Error fetching data. Retrying...', true);
+                });
+        }
+        
+        // Initial load with a short delay
+        setTimeout(() => {
+            fetchData();
+        }, 500);
+        
+        // Set up refresh interval
+        setInterval(fetchData, REFRESH_INTERVAL);
+    </script>
+</body>
+</html>
