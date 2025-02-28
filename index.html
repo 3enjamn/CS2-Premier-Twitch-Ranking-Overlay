@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="overlay">
+        <div class="rating-section">
+            <div class="rating-label">Rating</div>
+            <div id="rating" class="rating-value loading">Loading...</div>
+            <div id="rankTrend" class="rank-trend">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style="display:none;" class="trend-up">
+                    <path d="M7 14l5-5 5 5" stroke="var(--positive)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style="display:none;" class="trend-down">
+                    <path d="M7 10l5 5 5-5" stroke="var(--negative)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+        </div>
+        
+        <div class="stats-container">
+            <div class="today-stat">
+                <div class="stat-label">Today</div>
+                <div id="todayRatingDiff" class="stat-value loading">-</div>
+            </div>
+            
+            <div class="win-loss-stat">
+                <div class="stat-label">Wins</div>
+                <div id="wins" class="stat-value loading">-</div>
+            </div>
+            
+            <div class="win-loss-stat">
+                <div class="stat-label">Losses</div>
+                <div id="losses" class="stat-value loading">-</div>
+            </div>
+            
+            <div class="win-loss-stat">
+                <div class="stat-label">Ratio</div>
+                <div id="winRatio" class="stat-value loading">-</div>
+            </div>
+        </div>
+        
+        <div class="streak-container">
+            <div class="streak-label">Streak</div>
+            <div id="streak" class="streak">-</div>
+        </div>
+        
+        <div id="status" class="status-bar" style="display: none;"></div>
+    </div>
+
+    <script>
+        // Configuration
+        const PLAYER_UUID = '76561197965098205'; // Steam ID/UUID - Change this to your own
+        const API_BASE_URL = 'https://api.jakobkristensen.com/';
+        const API_URL = `${API_BASE_URL}${PLAYER_UUID}`;
+        const REFRESH_INTERVAL = 1200000; // 20 minutes
+        
+        // Elements
+        const elements = {
+            rating: document.getElementById('rating'),
+            todayRatingDiff: document.getElementById('todayRatingDiff'),
+            wins: document.getElementById('wins'),
+            losses: document.getElementById('losses'),
+            winRatio: document.getElementById('winRatio'),
+            streak: document.getElementById('streak'),
+            status: document.getElementById('status')
+        };
+        
+        // Helper functions
+        function formatRatingDiff(diff) {
+            const numDiff = parseInt(diff, 10);
+            if (numDiff > 0) {
+                return `<span class="positive">+${diff}</span>`;
+            } else if (numDiff < 0) {
+                return `<span class="negative">${diff}</span>`;
+            } else {
+                return `<span class="neutral">${diff}</span>`;
+            }
+        }
+        
+        function calculateWinRatio(wins, losses) {
+            wins = parseInt(wins, 10) || 0;
+            losses = parseInt(losses, 10) || 0;
+            
+            if (wins === 0 && losses === 0) return '0.0';
+            if (losses === 0) return wins.toFixed(1);
+            return (wins
